@@ -2,6 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Themes. Every screen sets data-theme on its root:
+    brand   – fixed teal theme (login, Dean, Parent, Office)
+    pending – red theme: Director / Teacher / Student with 3 or more pending tasks
+    clear   – light theme: Director / Teacher / Student with fewer pending tasks
+  Components read these variables, so one attribute switches the whole screen.
+*/
+:root,
+[data-theme="brand"] {
+  --accent: #0f766e;
+  --accent-hover: #0b5c56;
+  --accent-soft: #e3f2ef;
+  --accent-ink: #0b4a45;
+  --ground: #f5f7f7;
+  --card-border: #e1e7e6;
+  --side-bg: #0b3d3a;
+  --side-border: #0b3d3a;
+  --side-text: #c7deda;
+  --side-strong: #ffffff;
+  --side-active-bg: #0f766e;
+  --side-active-text: #ffffff;
+  --count-bg: #f59e0b;
+  --count-text: #10201e;
+  --logo-bg: #f59e0b;
+  --logo-text: #10201e;
+}
+[data-theme="pending"] {
+  --accent: #b91c1c;
+  --accent-hover: #991b1b;
+  --accent-soft: #fde8e7;
+  --accent-ink: #8a1c12;
+  --ground: #fff6f6;
+  --card-border: #f3cfcf;
+  --side-bg: #7a1616;
+  --side-border: #7a1616;
+  --side-text: #fbd5d5;
+  --side-strong: #ffffff;
+  --side-active-bg: #b91c1c;
+  --side-active-text: #ffffff;
+  --count-bg: #ffffff;
+  --count-text: #991b1b;
+  --logo-bg: #ffffff;
+  --logo-text: #991b1b;
+}
+[data-theme="clear"] {
+  --accent: #0f766e;
+  --accent-hover: #0b5c56;
+  --accent-soft: #e3f2ef;
+  --accent-ink: #0b4a45;
+  --ground: #f6faf9;
+  --card-border: #e1e9e7;
+  --side-bg: #ffffff;
+  --side-border: #e1e9e7;
+  --side-text: #4b5563;
+  --side-strong: #10201e;
+  --side-active-bg: #e3f2ef;
+  --side-active-text: #0f5f59;
+  --count-bg: #e3f2ef;
+  --count-text: #0f5f59;
+  --logo-bg: #0f766e;
+  --logo-text: #ffffff;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -10,22 +73,34 @@
     @apply bg-ground font-sans text-ink antialiased;
   }
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-600 ring-offset-2;
+    @apply outline-none ring-2 ring-[color:var(--accent)] ring-offset-2;
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-line bg-white p-4;
+    @apply rounded-2xl border border-[color:var(--card-border)] bg-white p-4;
   }
   .btn {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-bold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[color:var(--accent)] px-4 text-sm font-bold text-white transition-colors hover:bg-[color:var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-outline {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#CDD3DB] bg-white px-4 text-sm font-bold text-ink transition-colors hover:bg-ground disabled:opacity-60;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#CDD3DB] bg-white px-4 text-sm font-bold text-ink transition-colors hover:bg-ground disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-danger {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-alert-600 px-4 text-sm font-bold text-white transition-colors hover:bg-alert-700 disabled:opacity-60;
+  }
+  .btn-sm {
+    @apply h-9 rounded-lg px-3 text-[13px];
+  }
+  .link {
+    @apply font-bold text-[color:var(--accent)] hover:text-[color:var(--accent-hover)] hover:underline;
   }
   .field {
-    @apply h-12 w-full rounded-xl border border-[#CDD3DB] bg-white px-3.5 text-base text-ink placeholder:text-ink-muted/70 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30;
+    @apply h-12 w-full rounded-xl border border-[#CDD3DB] bg-white px-3.5 text-base text-ink placeholder:text-ink-muted/70 focus:border-[color:var(--accent)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-soft)];
+  }
+  .field-sm {
+    @apply h-10 text-sm;
   }
   .label {
     @apply text-sm font-bold text-ink;
@@ -45,8 +120,29 @@
   .pill-amber {
     @apply bg-warn-50 text-warn-900;
   }
+  .pill-blue {
+    @apply bg-[#E0EAFF] text-[#1E3A8A];
+  }
   .row {
     @apply flex items-center justify-between gap-3 border-b border-line-soft py-2.5 text-sm last:border-b-0;
+  }
+  .table {
+    @apply w-full border-collapse text-sm;
+  }
+  .table th {
+    @apply whitespace-nowrap border-b border-line px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-ink-muted;
+  }
+  .table td {
+    @apply border-b border-line-soft px-3 py-2.5 align-middle;
+  }
+  .table tr:last-child td {
+    @apply border-b-0;
+  }
+  .kpi-label {
+    @apply text-[13px] font-semibold text-ink-muted;
+  }
+  .kpi-value {
+    @apply mt-1 text-[28px] font-extrabold leading-tight tracking-tight;
   }
 }
 

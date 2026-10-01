@@ -65,6 +65,7 @@ export const SUBJECTS: Record<string, { name: string; short: string; isLab?: boo
   ],
 };
 
+export const ADMIN = { id: "ADMIN-0001", name: "College Office", email: "office@engineeringcollege.edu.in", phone: "9845000001" };
 export const DEAN = { id: "DEAN-0001", name: "Dr. Ramesh Kumar", email: "dean@engineeringcollege.edu.in", phone: "9845001001" };
 
 export const DIRECTORS = [
@@ -111,6 +112,28 @@ const FIXED_STUDENTS: Record<string, { name: string; rate: number }> = {
   "24SUUBECS0045": { name: "Sneha Patil", rate: 0.66 },
 };
 
+// One homework question per theory subject (index 0..3), with a short model answer.
+const HOMEWORK: Record<string, { q: string; key: string }[]> = {
+  CSE: [
+    { q: "Explain the difference between a stack and a queue. Give one real-world example of each.", key: "Stack is LIFO (push/pop at one end), e.g. undo in an editor or plates. Queue is FIFO (enqueue at rear, dequeue at front), e.g. a ticket line or printer jobs. Mention operations and order." },
+    { q: "What is normalisation in DBMS? Explain 1NF, 2NF and 3NF with a small example.", key: "Normalisation removes redundancy/anomalies. 1NF: atomic values, no repeating groups. 2NF: 1NF + no partial dependency on part of a composite key. 3NF: 2NF + no transitive dependency. Example table split." },
+    { q: "What is a deadlock? List the four necessary conditions for deadlock.", key: "Deadlock: processes wait forever for resources held by each other. Conditions: mutual exclusion, hold and wait, no preemption, circular wait." },
+    { q: "Compare TCP and UDP. When would you prefer UDP?", key: "TCP: connection-oriented, reliable, ordered, flow/congestion control, slower. UDP: connectionless, no guarantee, low overhead, faster. Prefer UDP for live video, voice, gaming, DNS." },
+  ],
+  DS: [
+    { q: "Explain overfitting in machine learning and two ways to reduce it.", key: "Overfitting: model learns noise, high train accuracy but poor test accuracy. Reduce with more data, regularisation (L1/L2), cross-validation, simpler model, dropout, early stopping." },
+    { q: "What are the 5 Vs of Big Data? Explain each briefly.", key: "Volume (size), Velocity (speed of generation), Variety (types/formats), Veracity (quality/trust), Value (usefulness)." },
+    { q: "When would you use a bar chart vs a line chart vs a scatter plot?", key: "Bar: compare categories. Line: trend over time/ordered x. Scatter: relationship/correlation between two numeric variables." },
+    { q: "Define mean, median and mode. Which is better for skewed data and why?", key: "Mean: average. Median: middle value. Mode: most frequent. Median is better for skewed data because it is not pulled by outliers." },
+  ],
+  AIML: [
+    { q: "Compare BFS and DFS search. Which one guarantees the shortest path in an unweighted graph?", key: "BFS explores level by level using a queue; DFS goes deep using a stack/recursion. BFS guarantees shortest path in unweighted graphs. Mention memory/time trade-offs." },
+    { q: "What is the vanishing gradient problem and how do ReLU and residual connections help?", key: "Gradients shrink through many layers (sigmoid/tanh), early layers learn slowly. ReLU has gradient 1 for positive inputs; residual/skip connections give a direct gradient path." },
+    { q: "Explain tokenisation and stemming in NLP with an example.", key: "Tokenisation splits text into tokens/words, e.g. 'I am learning' -> [I, am, learning]. Stemming cuts words to a root, e.g. learning/learned -> learn." },
+    { q: "What does a convolution layer do in a CNN? Explain kernel, stride and padding.", key: "Convolution slides a kernel/filter over the image to extract features. Kernel: small weight matrix. Stride: step size. Padding: border added to keep size." },
+  ],
+};
+
 // ---------- output types ----------
 export interface GenUser { id: string; role: string; name: string; email: string | null; phone: string | null }
 export interface GenClass { id: string; name: string; departmentId: string; semester: number; section: string; proctorId: string; index: number }
@@ -125,6 +148,12 @@ export interface GenAssessment { id: number; assignmentId: number; name: string;
 export interface GenMark { assessmentId: number; studentId: string; score: number | null; absent: boolean }
 export interface GenInvoice { studentId: string; title: string; amount: number; dueDate: Date; paidAt: Date | null; receiptNo: string | null; mode: string | null }
 export interface GenNotice { title: string; body: string; audience: string; departmentId: string | null; authorId: string; createdAt: Date }
+export interface GenLeave { teacherId: string; fromDate: Date; toDate: Date; kind: string; reason: string; status: string; reviewedById: string | null; decidedAt: Date | null; createdAt: Date }
+export interface GenDeanRequest { departmentId: string; createdById: string; kind: string; title: string; details: string; amount: number | null; status: string; reply: string | null; createdAt: Date; decidedAt: Date | null }
+export interface GenEvent { title: string; date: Date; kind: string; departmentId: string | null; createdById: string }
+export interface GenCoursework { id: number; assignmentId: number; title: string; instructions: string; answerKey: string; maxMarks: number; dueDate: Date; createdAt: Date }
+export interface GenSubmission { courseworkId: number; studentId: string; text: string; submittedAt: Date; status: string; aiScore: number | null; aiFeedback: string | null; aiCheckedAt: Date | null; finalScore: number | null; teacherComment: string | null; reviewedAt: Date | null }
+export interface GenMeeting { parentId: string; teacherId: string; studentId: string; preferredDate: Date; reason: string; status: string; createdAt: Date }
 export interface GenMessage { fromId: string; toId: string; studentId: string | null; body: string; createdAt: Date }
 
 /**
@@ -163,6 +192,7 @@ export function generate(opts: GenerateOptions) {
 
   const users: GenUser[] = [];
   users.push({ id: DEAN.id, role: "DEAN", name: DEAN.name, email: DEAN.email, phone: DEAN.phone });
+  users.push({ id: ADMIN.id, role: "ADMIN", name: ADMIN.name, email: ADMIN.email, phone: ADMIN.phone });
   for (const d of DIRECTORS) {
     users.push({ id: d.id, role: "DIRECTOR", name: d.name, email: `${d.id.toLowerCase()}@engineeringcollege.edu.in`, phone: d.phone });
   }
@@ -338,7 +368,95 @@ export function generate(opts: GenerateOptions) {
     },
   ];
 
-  return { users, classes, teachers, subjects, assignments, slots, students, sessions, records, assessments, marks, invoices, notices, messages };
+
+  messages.push({
+    fromId: "24SUUBECS0012P",
+    toId: "TCH-0001",
+    studentId: "24SUUBECS0012",
+    body: "Thank you sir. Kunal was unwell last week. He will attend regularly from now on. Can he get the DBMS notes he missed?",
+    createdAt: at(1, 19),
+  });
+
+  // Teacher leave requests (two pending in CSE so the Director has work).
+  const leaves: GenLeave[] = [
+    { teacherId: "TCH-0002", fromDate: addDays(today, 4), toDate: addDays(today, 6), kind: "MEDICAL", reason: "Minor surgery and rest as advised by doctor.", status: "PENDING", reviewedById: null, decidedAt: null, createdAt: at(1, 10) },
+    { teacherId: "TCH-0004", fromDate: addDays(today, 8), toDate: addDays(today, 8), kind: "CASUAL", reason: "Family function out of town.", status: "PENDING", reviewedById: null, decidedAt: null, createdAt: at(0, 9) },
+    { teacherId: "TCH-0006", fromDate: addDays(today, -10), toDate: addDays(today, -9), kind: "DUTY", reason: "Invited as external examiner at another college.", status: "APPROVED", reviewedById: "DIR-0002", decidedAt: at(14, 12), createdAt: at(15, 11) },
+  ];
+
+  const deanRequests: GenDeanRequest[] = [
+    { departmentId: "AIML", createdById: "DIR-0003", kind: "BUDGET", title: "24-hour AIML hackathon", details: "Budget for food, prizes and cloud credits for about 120 students. Industry judges have agreed to come.", amount: 120000, status: "PENDING", reply: null, createdAt: at(2, 11), decidedAt: null },
+    { departmentId: "DS", createdById: "DIR-0002", kind: "COURSE", title: "New elective: Cloud Computing for Data Science", details: "Proposed open elective for semester 6. Syllabus prepared; two faculty trained.", amount: null, status: "PENDING", reply: null, createdAt: at(3, 15), decidedAt: null },
+    { departmentId: "CSE", createdById: "DIR-0001", kind: "EVENT", title: "Guest lecture on cloud computing", details: "Speaker from industry, Friday 2 pm in the seminar hall.", amount: 15000, status: "APPROVED", reply: "Approved. Please share photos for the college newsletter.", createdAt: at(8, 10), decidedAt: at(7, 12) },
+  ];
+
+  const events: GenEvent[] = [
+    { title: "Internal Assessment 2 begins", date: addDays(today, 14), kind: "EXAM", departmentId: null, createdById: DEAN.id },
+    { title: "Parent–teacher meeting (all departments)", date: addDays(today, 9), kind: "MEETING", departmentId: null, createdById: DEAN.id },
+    { title: "Semester fee instalment 2 due", date: addDays(today, 33), kind: "DEADLINE", departmentId: null, createdById: DEAN.id },
+    { title: "Holiday: Deepavali", date: addDays(today, 27), kind: "HOLIDAY", departmentId: null, createdById: DEAN.id },
+    { title: "CSE guest lecture: cloud computing", date: addDays(today, 1), kind: "EVENT", departmentId: "CSE", createdById: "DIR-0001" },
+    { title: "Data Science project expo", date: addDays(today, 6), kind: "EVENT", departmentId: "DS", createdById: "DIR-0002" },
+    { title: "AIML hackathon", date: addDays(today, 20), kind: "EVENT", departmentId: "AIML", createdById: "DIR-0003" },
+  ];
+
+  // Homework: "Assignment 1" for every theory subject (closed, mostly marked),
+  // and "Assignment 2" for subject 0 (open, some submissions waiting for review).
+  const coursework: GenCoursework[] = [];
+  const submissions: GenSubmission[] = [];
+  const rngHw = mulberry32(seed + 3);
+  for (const a of assignments) {
+    if (a.subjectIndex === 4) continue;
+    const c = classes.find((x) => x.id === a.classId)!;
+    const hw = HOMEWORK[c.departmentId][a.subjectIndex];
+    const id1 = coursework.length + 1;
+    coursework.push({ id: id1, assignmentId: a.id, title: "Assignment 1", instructions: hw.q, answerKey: hw.key, maxMarks: 10, dueDate: addDays(today, -6), createdAt: addDays(today, -16) });
+    for (const s of studentsByClass.get(a.classId)!) {
+      if (rngHw() < 0.12) continue; // did not submit
+      const score = Math.max(2, Math.min(10, Math.round(normal(rngHw, s.ability, 0.12) * 10)));
+      submissions.push({
+        courseworkId: id1,
+        studentId: s.id,
+        text: `My answer: ${hw.key.split(".")[0]}.`,
+        submittedAt: addDays(today, -7 - Math.floor(rngHw() * 5)),
+        status: "APPROVED",
+        aiScore: score,
+        aiFeedback: score >= 7 ? "Good answer covering the main points." : "Covers some points; add more detail and an example.",
+        aiCheckedAt: addDays(today, -6),
+        finalScore: score,
+        teacherComment: null,
+        reviewedAt: addDays(today, -5),
+      });
+    }
+    if (a.subjectIndex === 0) {
+      const id2 = coursework.length + 1;
+      const hw2 = HOMEWORK[c.departmentId][(a.subjectIndex + 1) % 4];
+      coursework.push({ id: id2, assignmentId: a.id, title: "Assignment 2", instructions: `${hw2.q} Write in your own words.`, answerKey: hw2.key, maxMarks: 10, dueDate: addDays(today, 4), createdAt: addDays(today, -3) });
+      for (const s of studentsByClass.get(a.classId)!) {
+        if (rngHw() > 0.3) continue;
+        const score = Math.max(2, Math.min(10, Math.round(normal(rngHw, s.ability, 0.12) * 10)));
+        submissions.push({
+          courseworkId: id2,
+          studentId: s.id,
+          text: `Answer: ${hw2.key}`,
+          submittedAt: addDays(today, -1),
+          status: "AI_CHECKED",
+          aiScore: score,
+          aiFeedback: score >= 7 ? "Correct and well explained. Add one example to make it complete." : "Partly correct. Some key points are missing.",
+          aiCheckedAt: addDays(today, -1),
+          finalScore: null,
+          teacherComment: null,
+          reviewedAt: null,
+        });
+      }
+    }
+  }
+
+  const meetings: GenMeeting[] = [
+    { parentId: "24SUUBECS0045P", teacherId: "TCH-0001", studentId: "24SUUBECS0045", preferredDate: addDays(today, isoWeekday(today) >= 5 ? 4 : 1), reason: "To discuss Sneha's attendance and how she can catch up.", status: "PENDING", createdAt: at(0, 9) },
+  ];
+
+  return { users, classes, teachers, subjects, assignments, slots, students, sessions, records, assessments, marks, invoices, notices, messages, leaves, deanRequests, events, coursework, submissions, meetings };
 }
 
 export type Generated = ReturnType<typeof generate>;

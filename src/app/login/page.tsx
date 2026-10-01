@@ -12,6 +12,7 @@ const SAMPLE_IDS = [
   { role: "Parent", id: "24SUUBECS0045P" },
   { role: "Teacher", id: "TCH-0001" },
   { role: "Director · Dean", id: "DIR-0001 · DEAN-0001" },
+  { role: "College Office", id: "ADMIN-0001" },
 ];
 
 export default async function LoginPage() {
@@ -36,7 +37,7 @@ export default async function LoginPage() {
             Attendance, marks, fees and notices for the Dean, Directors, Teachers, Students and Parents.
           </p>
         </div>
-        <div className="hidden grid-cols-2 gap-3 text-sm lg:grid">
+        <div className="hidden grid-cols-2 gap-3 text-sm lg:grid [&>*:last-child]:col-span-2">
           {SAMPLE_IDS.map((s) => (
             <div key={s.role} className="rounded-xl bg-brand-800 p-3.5">
               <div className="text-brand-200">{s.role}</div>

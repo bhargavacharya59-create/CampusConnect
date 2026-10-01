@@ -1,128 +1,115 @@
 # CampusConnect
 
-College portal for **Engineering College** (working name). There is one login for five roles, and each role gets its own dashboard:
+The complete college portal for **Engineering College** (working name). One website with six kinds of login, each with its own dashboard.
 
-| Role | Login ID format | Example | Status |
+| Role | Login ID | Example | Theme |
 |---|---|---|---|
-| Dean (head of college) | `DEAN-xxxx` | `DEAN-0001` | coming next |
-| Director (one per department) | `DIR-xxxx` | `DIR-0001` | coming next |
-| Teacher | `TCH-xxxx` | `TCH-0001` | coming next |
-| Student | year + `SUU` + `BE` + dept + roll | `24SUUBECS0045` | coming next |
-| Parent | student ID + `P` | `24SUUBECS0045P` | **built** |
+| College Office (admin) | `ADMIN-xxxx` | `ADMIN-0001` | fixed teal |
+| Dean (head of college) | `DEAN-xxxx` | `DEAN-0001` | fixed teal |
+| Director (one per department) | `DIR-xxxx` | `DIR-0001` | **red / light** |
+| Teacher | `TCH-xxxx` | `TCH-0001` | **red / light** |
+| Student | year + `SUU` + `BE` + dept + roll | `24SUUBECS0045` | **red / light** |
+| Parent | student ID + `P` | `24SUUBECS0045P` | fixed teal, phone layout |
 
 Department codes inside student IDs: `CS` = CSE, `DS` = Data Science, `AI` = AIML.
 
-## What's built so far
+**Red / light theme:** Director, Teacher and Student screens turn **red when 3 or more tasks are pending** and switch to the **light theme** when fewer are left. With 1–2 tasks a calm reminder shows; with none, a green "All caught up" banner shows. The rules are in `src/lib/pending.ts` (`RED_THEME_AT` in `src/lib/constants.ts`).
 
-- **Database and dummy data:** 3 departments (CSE 4 classes, Data Science 3, AIML 3), 10 classes of 60 students (600 in total), 600 parent logins, 10 teachers (each the proctor of one class who also teaches in 4 other classes), 3 Directors and 1 Dean. Also included: a clash-free Mon–Fri timetable, about 6 weeks of attendance history, IA-1/lab marks, fee instalments, notices and teacher messages.
-- **Login:** ID + password. The ID format tells the system the role; passwords are hashed with bcrypt and the session is kept in a signed, HTTP-only cookie.
-- **Parent website (phone-style layout):**
-  - Home: attendance %, marks %, fee due, low-attendance warning (with "attend the next N classes to reach 75%"), today's classes with present/absent, latest marks, proctor and notices
-  - Attendance: subject-wise bars with a 75% marker and recent absences by date
-  - Marks: published tests only, with class average and a printable report card
-  - Fees: dues, overdue items, paid receipts
-  - Messages: chat with the proctor, meeting requests, college notices
-  - Account: student and parent details, change password, sign out
-  - **Ask AI** (Gemini): parents ask questions in English, Kannada or Hindi and get answers built only from their own child's data
-  - **AI progress summary**: a short weekly note about the child on the home page, cached once per week
+---
 
-## AI (Google Gemini)
+## Where to add the API keys
 
-Each AI feature has its own key in `.env`:
+1. Copy `.env.example` to a new file called `.env` in the project folder.
+2. Paste the four Gemini keys between the quotes:
 
-| Key | Feature | Status |
-|---|---|---|
-| `GEMINI_KEY_PARENT` | Parent AI assistant + weekly parent summary | built |
-| `GEMINI_KEY_ASSIGNMENT` | Checking student notes/assignments (teacher approves the AI's marks) | planned |
-| `GEMINI_KEY_TEACHER` | Teacher writing helper + proctor class summaries | planned |
-| `GEMINI_KEY_ALERTS` | At-risk student alerts | planned |
-| `GEMINI_API_KEY` | Optional fallback for any feature whose key is empty | |
+```
+GEMINI_KEY_PARENT="..."       # Gemini 1: parent AI assistant + weekly progress summary
+GEMINI_KEY_ASSIGNMENT="..."   # Gemini 2: AI checking of student assignments
+GEMINI_KEY_TEACHER="..."      # Gemini 3: teacher AI helper + proctor class summary
+GEMINI_KEY_ALERTS="..."       # Gemini 4: at-risk student alerts for Directors
+```
 
-- Create each key in a **separate Google Cloud project**, because Gemini limits are per project.
-- Use a **billed (paid) project** before real student data goes in. On the free tier, Google may use requests to improve its products.
-- Every user has a daily AI limit per feature (`AI_LIMIT_*` in `.env`), so costs stay predictable.
-- The model is set by `GEMINI_MODEL`. If that model is ever retired, the code falls back to `gemini-flash-latest` automatically.
-- If no key is set, the AI parts of the site show "not switched on yet" and everything else keeps working.
+3. Restart the site (`npm run dev`, or `npm run build && npm start` in production).
 
-Code: `src/lib/ai/gemini.ts` (client), `src/lib/ai/limits.ts` (daily limits), `src/lib/ai/studentContext.ts` (the data the AI sees).
+That's all: no code changes needed. If a key is missing, only that AI feature shows "not switched on"; everything else keeps working. `GEMINI_API_KEY` is an optional fallback used by any feature whose own key is empty. Keys are never sent to the browser and `.env` is never uploaded to GitHub.
 
-## Run it locally
+Tips: create each key in a **separate Google Cloud project** (limits are per project), and use a **billed project** before real student data goes in. Daily per-user limits (`AI_LIMIT_*`) keep costs predictable.
 
-Requires Node.js 18.18 or newer.
+---
+
+## Run it
+
+Requires **Node.js 18.18+** (20 or 22 recommended).
 
 ```bash
 npm install
-cp .env.example .env          # then edit AUTH_SECRET
-npm run setup                 # creates the database and loads the dummy data
-npm run dev                   # http://localhost:3000
+cp .env.example .env      # set AUTH_SECRET to any long random text, add Gemini keys
+npm run setup             # creates the database and loads the dummy college
+npm run dev               # open http://localhost:3000
 ```
 
-Demo logins (password for all of them: `Welcome@123`, set by `SEED_DEFAULT_PASSWORD`):
+Every dummy account's password is `Welcome@123` (set by `SEED_DEFAULT_PASSWORD`).
 
-| Who | ID |
+### Demo logins and what to try
+
+| Login | Try this |
 |---|---|
-| Parent of a student with low attendance | `24SUUBECS0045P` |
-| Parent of a student with good attendance | `24SUUBECS0001P` |
-| Teacher (proctor of CSE-A) | `TCH-0001` |
-| Director, CSE | `DIR-0001` |
-| Dean | `DEAN-0001` |
+| `TCH-0001` | Red theme (missed attendance, 19 AI-checked submissions, a parent message, a meeting request). Take attendance, approve AI marks, reply to the parent. The screen turns light once fewer than 3 tasks remain. |
+| `24SUUBECS0045` | Student with low attendance (red). Submit Assignment 2 with typed text or a photo; AI feedback appears in seconds. |
+| `24SUUBECS0001` | Student in good standing. |
+| `24SUUBECS0045P` | Parent (phone layout): attendance warning, Ask AI in English/Kannada/Hindi, weekly AI summary, messages, meeting requests. |
+| `DIR-0001` | CSE Director, red: approve CSE-C DBMS marks, two leave requests, inform parents of low-attendance students, AI at-risk alerts. |
+| `DIR-0002` | Data Science Director, light theme. |
+| `DEAN-0001` | Publish CSE-B OS results, approve the AIML hackathon budget, compare departments, download reports. |
+| `ADMIN-0001` | College Office: reset passwords, add students/staff, import from Excel, record fee payments. |
 
-Other useful commands:
+The dummy data is generated relative to the day you run `npm run setup`, so "today's" classes and due dates always look current. Run `npm run db:reset` any time to start fresh.
 
-```bash
-npm run db:reset     # wipe and reload the dummy data
-npm run check:data   # sanity checks on the dummy-data generator
-npx prisma studio    # browse the database in the browser
-```
+---
 
-The dummy data is generated relative to the day you run the seed, so "today's" classes and due dates always look current.
+## What each role can do
 
-## Theme rules
+**Parent** (phone-style website): child's attendance with the "attend the next N classes" warning, today's classes (present/absent), published marks with class average and printable report card, fees and receipts, messages with the proctor, meeting requests, college notices, **Ask AI**, weekly **AI progress summary**, change password.
 
-- **Fixed brand theme** (deep teal, amber logo): login, Dean, Parent.
-- **Director, Teacher and Student** switch themes based on their own pending work: **red** while there is a lot pending, **light** once everything is done. This will be built with those dashboards.
+**Student:** dashboard with pending tasks, attendance by subject, weekly timetable, marks and report card, **assignments** (type an answer or upload a photo/PDF, max 5 MB; AI checks it and gives feedback; marks show after the teacher approves), fees, notices and calendar.
 
-Colour tokens live in `tailwind.config.ts`.
+**Teacher:** today's classes, **take attendance** (everyone starts Present, tap absentees, editable until midnight), **My proctor class** (all 60 students across every subject, student pages with marks, fees, mentoring notes and parent messaging, AI class summary), **marks entry** (draft then submit to Director; sent-back marks show the Director's note), **assignments** (create with a hidden answer key, AI checks submissions, approve/change/return), messages and meeting requests, timetable, leave applications, **AI helper** (draft parent messages in English/Kannada/Hindi, generate questions).
+
+**Director:** department overview, **marks approval** with statistics (approve or send back), **leave requests**, **low attendance** with one-click parent warnings, **AI at-risk alerts**, student search, teachers and workload, class timetables, requests to the Dean, department notices and calendar, CSV reports.
+
+**Dean:** college overview and department comparison, **publish results** (Teacher → Director → Dean → students and parents see them), **approvals** of Director requests, departments and Director assignment, student search, college notices and academic calendar, CSV reports.
+
+**College Office:** search any account and **reset passwords**, **add students** (parent login created automatically), **import students from Excel/CSV**, add staff (Teacher, Director, Dean, Office), set proctors and subject teachers (double-booking is refused), **record fee payments** (receipt numbers generated) and add fee items, CSV reports.
+
+---
+
+## Handing over to the college
+
+1. **Database:** local development uses SQLite. For production, change `provider = "sqlite"` to `"postgresql"` in `prisma/schema.prisma`, set `DATABASE_URL` to a Postgres database and run `npx prisma db push`.
+2. **Secrets:** set a long random `AUTH_SECRET`. Login cookies are HTTPS-only in production; on a plain-HTTP campus server set `COOKIE_SECURE=false`.
+3. **Real data:** sign in as `ADMIN-0001` → add staff → set proctors/subject teachers → **Import from Excel** (template provided on that page). Do not run `npm run setup` on the real database: it wipes all data and reloads the dummy college.
+4. **First passwords:** every new account must change its first-time password; a reminder shows until they do.
+5. **Uploads:** assignment files are stored in the database (max 5 MB each), so backups of the database include them.
+
+## Known limits
+
+- Online fee payment (e.g. Razorpay) and SMS/WhatsApp alerts are not connected; payments are recorded by the office and alerts appear inside the portal.
+- The weekly timetable comes from the seed. The office can change who teaches each subject and the proctors, but editing period slots needs a database edit.
+- On Postgres, name search is case-sensitive (IDs are not).
 
 ## Project layout
 
 ```
-prisma/
-  schema.prisma          database tables
-  seed.ts                loads the dummy data
-  data/generate.ts       dummy-data generator (pure, testable)
-  data/check.ts          checks for the generator
-src/
-  app/
-    login/               login page
-    parent/              parent website (layout, pages, server actions)
-    dean/ director/ teacher/ student/   placeholders for now
-    actions/auth.ts      login, logout, change password
-  components/            shared UI (logo, icons, forms)
-  lib/
-    auth.ts session.ts   session cookie and role checks
-    db.ts                Prisma client
-    queries/student.ts   attendance, marks, fees, notices for one student
-    attendance.ts        75% maths
-    ids.ts               login ID formats
-    dates.ts             India-timezone date helpers
+prisma/schema.prisma        all tables
+prisma/seed.ts              loads the dummy college (npm run setup / db:reset)
+prisma/data/generate.ts     dummy-data generator (pure, tested by check.ts)
+src/app/<role>/             pages for admin, dean, director, teacher, student, parent
+src/app/<role>/actions.ts   server actions (every one checks the role and ownership)
+src/app/api/                CSV reports, file downloads, import template
+src/components/             shell (sidebar + themes), UI pieces, forms
+src/lib/pending.ts          pending-work rules that drive the red/light theme
+src/lib/ai/                 Gemini client, daily limits, assignment checker, student context
+src/lib/risk.ts             at-risk rules used by AI alerts
 ```
 
-## Handing over to the college
-
-1. **Database:** the project uses SQLite for local development. For a real deployment, change `provider = "sqlite"` to `"postgresql"` in `prisma/schema.prisma` and point `DATABASE_URL` at a Postgres database.
-2. **Secrets:** set a long random `AUTH_SECRET` in production.
-3. **HTTPS:** login cookies are HTTPS-only in production. If the college runs the portal on a plain-HTTP internal server, set `COOKIE_SECURE=false`.
-4. **Real data:** the college office will replace the dummy data with real students, staff and parents. An admin panel and Excel/CSV import are planned.
-5. **Passwords:** every account starts with the default password. Parents see a reminder to change it until they do; the other roles will get the same reminder.
-
-## Roadmap
-
-1. Parent website ✅ (with AI assistant and weekly summary ✅)
-2. Teacher: take attendance, proctor class, marks entry, red/light theme (red at 3 or more pending tasks), AI writing helper
-3. Student assignment upload with AI checking (teacher approves the marks)
-4. Student dashboard
-5. Director: department dashboard, approvals, low-attendance list, at-risk alerts
-6. Dean: college dashboard, publishing results, reports
-7. Admin panel + Excel import
-8. Mobile app
+Useful commands: `npm run db:reset`, `npm run check:data`, `npx prisma studio` (browse the database), `npm run build`.

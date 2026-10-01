@@ -23,6 +23,7 @@ export function detectRole(rawId: string): Role | null {
   if (/^TCH-\d{4}$/.test(id)) return "TEACHER";
   if (/^DIR-\d{4}$/.test(id)) return "DIRECTOR";
   if (/^DEAN-\d{4}$/.test(id)) return "DEAN";
+  if (/^ADMIN-\d{4}$/.test(id)) return "ADMIN";
   return null;
 }
 

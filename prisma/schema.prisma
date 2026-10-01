@@ -18,7 +18,7 @@ datasource db {
 // (e.g. DEAN-0001, DIR-0001, TCH-0001, 24SUUBECS0302, 24SUUBECS0302P).
 model User {
   id                 String   @id
-  role               String // DEAN | DIRECTOR | TEACHER | STUDENT | PARENT
+  role               String // ADMIN | DEAN | DIRECTOR | TEACHER | STUDENT | PARENT
   name               String
   email              String?
   phone              String?
@@ -35,6 +35,8 @@ model User {
   sent        Message[]       @relation("MessageFrom")
   received    Message[]       @relation("MessageTo")
   meetingsAsk MeetingRequest[] @relation("MeetingParent")
+  requestsMade DeanRequest[]  @relation("RequestsMade")
+  events      Event[]
 }
 
 model Department {
@@ -48,6 +50,8 @@ model Department {
   subjects Subject[]
   teachers Teacher[]
   notices  Notice[]
+  requests DeanRequest[]
+  events   Event[]
 }
 
 model Teacher {
@@ -61,6 +65,8 @@ model Teacher {
   assignments TeachingAssignment[]
   sessions    AttendanceSession[]
   meetings    MeetingRequest[]
+  leaves      LeaveRequest[]
+  notes       MentorNote[]
 }
 
 // A class/section of up to 60 students, e.g. CSE-A.
@@ -97,6 +103,8 @@ model Student {
   meetings   MeetingRequest[]
   messages   Message[]
   aiSummaries AiSummary[]
+  submissions Submission[]
+  notes       MentorNote[]
 
   @@index([classId])
 }
@@ -126,6 +134,7 @@ model TeachingAssignment {
   slots       TimetableSlot[]
   sessions    AttendanceSession[]
   assessments Assessment[]
+  coursework  Coursework[]
 
   @@unique([classId, subjectId])
   @@index([teacherId])
@@ -184,6 +193,7 @@ model Assessment {
   maxMarks     Int
   heldOn       DateTime?
   status       String             @default("DRAFT")
+  reviewNote   String? // set when a Director sends marks back
   publishedAt  DateTime?
 
   marks Mark[]
@@ -291,4 +301,114 @@ model MeetingRequest {
   status        String    @default("PENDING")
   reply         String?
   createdAt     DateTime  @default(now())
+}
+
+// ---------- Staff workflow ----------
+
+// kind: CASUAL | MEDICAL | DUTY | OTHER. status: PENDING | APPROVED | REJECTED
+model LeaveRequest {
+  id           String    @id @default(cuid())
+  teacherId    String
+  teacher      Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  fromDate     DateTime
+  toDate       DateTime
+  kind         String
+  reason       String
+  status       String    @default("PENDING")
+  reviewedById String?
+  reviewNote   String?
+  createdAt    DateTime  @default(now())
+  decidedAt    DateTime?
+
+  @@index([teacherId])
+}
+
+// Requests from a Director to the Dean.
+// kind: EVENT | BUDGET | COURSE | OTHER. status: PENDING | APPROVED | REJECTED
+model DeanRequest {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  createdById  String
+  createdBy    User       @relation("RequestsMade", fields: [createdById], references: [id])
+  kind         String
+  title        String
+  details      String
+  amount       Int?
+  status       String     @default("PENDING")
+  reply        String?
+  createdAt    DateTime   @default(now())
+  decidedAt    DateTime?
+}
+
+// Academic calendar. departmentId null = whole college.
+// kind: EXAM | HOLIDAY | EVENT | MEETING | DEADLINE
+model Event {
+  id           String      @id @default(cuid())
+  title        String
+  date         DateTime
+  kind         String
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  createdById  String
+  createdBy    User        @relation(fields: [createdById], references: [id])
+  createdAt    DateTime    @default(now())
+
+  @@index([date])
+}
+
+// Private proctor notes about a student (visible to proctor, Director, Dean).
+model MentorNote {
+  id        String   @id @default(cuid())
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  note      String
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+// ---------- Assignments (homework) ----------
+
+// A piece of homework set by a teacher for one class + subject.
+model Coursework {
+  id           Int                @id @default(autoincrement())
+  assignmentId Int
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id])
+  title        String
+  instructions String
+  answerKey    String? // model answer / marking guide, used by the AI checker; never shown to students
+  maxMarks     Int
+  dueDate      DateTime
+  createdAt    DateTime           @default(now())
+
+  submissions Submission[]
+
+  @@index([assignmentId])
+}
+
+// status: SUBMITTED -> AI_CHECKED (or AI_FAILED) -> APPROVED (teacher final) | RETURNED (redo)
+model Submission {
+  id             Int        @id @default(autoincrement())
+  courseworkId   Int
+  coursework     Coursework @relation(fields: [courseworkId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  text           String?
+  fileName       String?
+  fileMime       String?
+  fileData       Bytes?
+  submittedAt    DateTime   @default(now())
+  status         String     @default("SUBMITTED")
+  aiScore        Float?
+  aiFeedback     String?
+  aiCheckedAt    DateTime?
+  finalScore     Float?
+  teacherComment String?
+  reviewedAt     DateTime?
+
+  @@unique([courseworkId, studentId])
+  @@index([studentId])
 }

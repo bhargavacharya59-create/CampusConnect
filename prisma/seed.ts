@@ -13,6 +13,12 @@ async function inChunks<T>(rows: T[], size: number, fn: (chunk: T[]) => Promise<
 
 async function wipe() {
   // Children first.
+  await prisma.submission.deleteMany();
+  await prisma.coursework.deleteMany();
+  await prisma.mentorNote.deleteMany();
+  await prisma.event.deleteMany();
+  await prisma.deanRequest.deleteMany();
+  await prisma.leaveRequest.deleteMany();
   await prisma.aiSummary.deleteMany();
   await prisma.aiUsage.deleteMany();
   await prisma.meetingRequest.deleteMany();
@@ -78,7 +84,16 @@ async function main() {
   await prisma.notice.createMany({ data: g.notices });
   await prisma.message.createMany({ data: g.messages });
 
+  console.log("Creating leave requests, Dean requests, calendar, homework…");
+  await prisma.leaveRequest.createMany({ data: g.leaves });
+  await prisma.deanRequest.createMany({ data: g.deanRequests });
+  await prisma.event.createMany({ data: g.events });
+  await prisma.coursework.createMany({ data: g.coursework });
+  await inChunks(g.submissions, 1000, (chunk) => prisma.submission.createMany({ data: chunk }));
+  await prisma.meetingRequest.createMany({ data: g.meetings });
+
   console.log("\nDone. Sample logins (password for all: " + password + ")");
+  console.log("  Office    ADMIN-0001");
   console.log("  Dean      DEAN-0001");
   console.log("  Director  DIR-0001  (CSE)");
   console.log("  Teacher   TCH-0001  (proctor of CSE-A)");

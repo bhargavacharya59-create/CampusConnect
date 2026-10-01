@@ -60,3 +60,19 @@ export const formatDateTime = (d: Date) => fmtDateTime.format(d);
 export function sameDay(a: Date, b: Date): boolean {
   return a.getTime() === b.getTime();
 }
+
+/** "Good morning" / "Good afternoon" / "Good evening" in India time. */
+export function greeting(now: Date = new Date()): string {
+  const m = istMinutesNow(now);
+  return m < 12 * 60 ? "Good morning" : m < 17 * 60 ? "Good afternoon" : "Good evening";
+}
+
+/** yyyy-mm-dd for <input type="date">, from a midnight-UTC calendar date. */
+export const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+
+/** Parses yyyy-mm-dd from a form into midnight UTC, or null. */
+export function parseIsoDate(s: string | null | undefined): Date | null {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(`${s}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}

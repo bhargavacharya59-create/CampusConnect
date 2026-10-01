@@ -7,10 +7,11 @@ export const COLLEGE_SHORT = "EC";
 export const COLLEGE_CODE = "SUU";
 export const DEGREE_CODE = "BE";
 
-export const ROLES = ["DEAN", "DIRECTOR", "TEACHER", "STUDENT", "PARENT"] as const;
+export const ROLES = ["ADMIN", "DEAN", "DIRECTOR", "TEACHER", "STUDENT", "PARENT"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABEL: Record<Role, string> = {
+  ADMIN: "College Office",
   DEAN: "Dean",
   DIRECTOR: "Director",
   TEACHER: "Teacher",
@@ -20,6 +21,7 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** Where each role lands after login. */
 export const ROLE_HOME: Record<Role, string> = {
+  ADMIN: "/admin",
   DEAN: "/dean",
   DIRECTOR: "/director",
   TEACHER: "/teacher",
@@ -45,3 +47,14 @@ export const WORKING_DAYS = 5; // Monday to Friday
 
 export const ASSESSMENT_STATUS = ["DRAFT", "SUBMITTED", "DIRECTOR_APPROVED", "PUBLISHED"] as const;
 export type AssessmentStatus = (typeof ASSESSMENT_STATUS)[number];
+
+/** Director / Teacher / Student screens turn red at this many pending tasks. */
+export const RED_THEME_AT = 3;
+
+export const LEAVE_KINDS = { CASUAL: "Casual", MEDICAL: "Medical", DUTY: "On duty", OTHER: "Other" } as const;
+export const REQUEST_KINDS = { EVENT: "Event", BUDGET: "Budget", COURSE: "New course", OTHER: "Other" } as const;
+export const EVENT_KINDS = { EXAM: "Exam", HOLIDAY: "Holiday", EVENT: "Event", MEETING: "Meeting", DEADLINE: "Deadline" } as const;
+
+/** Uploads for assignments. */
+export const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+export const UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;

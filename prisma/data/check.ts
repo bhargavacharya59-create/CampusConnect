@@ -85,3 +85,16 @@ console.log("today sessions", g.sessions.filter((s) => s.date.getTime() === toda
 console.log("teacher of CSE-A by subject:", g.assignments.filter((a) => a.classId === "CSE-A").map((a) => a.teacherId).join(", "));
 assert.ok(low >= 20 && low <= 70, "a realistic number of low-attendance students");
 console.log("All checks passed.");
+
+// Workflow and homework data
+assert.ok(g.users.some((u) => u.id === "ADMIN-0001" && u.role === "ADMIN"));
+assert.equal(g.leaves.filter((l) => l.status === "PENDING").length, 2);
+assert.equal(g.deanRequests.filter((r) => r.status === "PENDING").length, 2);
+assert.equal(g.coursework.length, 10 * 4 + 10, "Assignment 1 per theory subject + Assignment 2 per class");
+assert.ok(g.submissions.some((s) => s.status === "AI_CHECKED"), "some submissions wait for teacher review");
+const cwIds = new Set(g.coursework.map((c) => c.id));
+assert.ok(g.submissions.every((s) => cwIds.has(s.courseworkId)));
+assert.equal(new Set(g.submissions.map((s) => s.courseworkId + "|" + s.studentId)).size, g.submissions.length, "one submission per student per assignment");
+const tch1Review = g.submissions.filter((s) => s.status === "AI_CHECKED" && g.assignments.find((a) => a.id === g.coursework[s.courseworkId - 1].assignmentId)!.teacherId === "TCH-0001").length;
+console.log("coursework", g.coursework.length, "submissions", g.submissions.length, "TCH-0001 to review", tch1Review);
+console.log("Workflow checks passed.");

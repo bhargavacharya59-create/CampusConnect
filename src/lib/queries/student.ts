@@ -24,6 +24,11 @@ export async function getStudentProfileByParent(parentId: string) {
 }
 export type StudentProfile = NonNullable<Awaited<ReturnType<typeof getStudentProfileByParent>>>;
 
+export async function getStudentProfileById(studentId: string): Promise<StudentProfile | null> {
+  const s = await prisma.student.findUnique({ where: { id: studentId }, select: { parentId: true } });
+  return s ? getStudentProfileByParent(s.parentId) : null;
+}
+
 export interface SubjectAttendance {
   subjectId: string;
   name: string;
@@ -154,7 +159,7 @@ export async function getPublishedMarks(classId: string, studentId: string) {
     _avg: { score: true },
     _max: { score: true },
   });
-  const avgMap = new Map(averages.map((a) => [a.assessmentId, a]));
+  const avgMap = new Map<number, (typeof averages)[number]>(averages.map((a) => [a.assessmentId, a]));
 
   const items = assessments.map((a) => {
     const mine = a.marks[0];
