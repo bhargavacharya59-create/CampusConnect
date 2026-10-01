@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { COLLEGE_NAME } from "@/lib/constants";
 import { getParentAndChild } from "./data";
 import { Logo } from "@/components/Logo";
-import { BellIcon, UserIcon } from "@/components/icons";
+import { BellIcon, SparkleIcon, UserIcon } from "@/components/icons";
 import { BottomNav } from "./BottomNav";
 
 export const metadata: Metadata = { title: "Parent" };
@@ -32,6 +32,9 @@ export default async function ParentLayout({ children }: { children: React.React
               >
                 <BellIcon size={20} />
                 {unread > 0 && <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-brand-800" />}
+              </Link>
+              <Link href="/parent/assistant" aria-label="Ask AI" className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-800 text-gold hover:bg-brand-700">
+                <SparkleIcon size={20} />
               </Link>
               <Link href="/parent/account" aria-label="Account" className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-800 hover:bg-brand-700">
                 <UserIcon size={20} />

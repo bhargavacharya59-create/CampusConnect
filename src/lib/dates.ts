@@ -26,6 +26,11 @@ export function isoWeekday(d: Date): number {
   return w === 0 ? 7 : w;
 }
 
+/** Monday of the week containing `d`. */
+export function weekStart(d: Date): Date {
+  return addDays(d, -(isoWeekday(d) - 1));
+}
+
 export function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;

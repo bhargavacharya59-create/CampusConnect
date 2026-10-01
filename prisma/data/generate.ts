@@ -151,7 +151,12 @@ export interface GenerateOptions {
 }
 
 export function generate(opts: GenerateOptions) {
-  const rng = mulberry32(opts.seed ?? 20261001);
+  const seed = opts.seed ?? 20261001;
+  // Separate streams so people/marks/fees stay the same whatever day the seed
+  // runs; only the attendance history depends on the date.
+  const rng = mulberry32(seed);
+  const rngAtt = mulberry32(seed + 1);
+  const rngMarks = mulberry32(seed + 2);
   const today = opts.today;
   const historyDays = opts.historyDays ?? 42;
   const periodsTakenToday = opts.periodsTakenToday ?? 2;
@@ -260,7 +265,7 @@ export function generate(opts: GenerateOptions) {
         const id = sessions.length + 1;
         sessions.push({ id, assignmentId: a.id, date, period, takenById: a.teacherId, takenAt: new Date(date.getTime() + (3.5 + period) * 3600 * 1000) });
         for (const s of studentsByClass.get(c.id)!) {
-          records.push({ sessionId: id, studentId: s.id, status: rng() < s.rate ? "P" : "A" });
+          records.push({ sessionId: id, studentId: s.id, status: rngAtt() < s.rate ? "P" : "A" });
         }
       }
     }
@@ -282,8 +287,8 @@ export function generate(opts: GenerateOptions) {
     const maxMarks = isLab ? 25 : 50;
     assessments.push({ id, assignmentId: a.id, name: isLab ? "Lab Internal" : "IA-1", maxMarks, heldOn: ia1Date, status, publishedAt: status === "PUBLISHED" ? addDays(ia1Date, 8) : null });
     for (const s of studentsByClass.get(a.classId)!) {
-      const absent = rng() < 0.02;
-      const raw = normal(rng, s.ability, 0.1) * maxMarks;
+      const absent = rngMarks() < 0.02;
+      const raw = normal(rngMarks, s.ability, 0.1) * maxMarks;
       const score = absent ? null : Math.max(0, Math.min(maxMarks, Math.round(raw)));
       marks.push({ assessmentId: id, studentId: s.id, score, absent });
     }
@@ -296,13 +301,13 @@ export function generate(opts: GenerateOptions) {
   const receiptNo = () => `ECR-${ADMISSION_YEAR + 2}-${String(++receipt).padStart(5, "0")}`;
   for (const s of students) {
     const inst1Due = addDays(today, -50);
-    invoices.push({ studentId: s.id, title: "Semester 5 tuition · Instalment 1", amount: 45000, dueDate: inst1Due, paidAt: addDays(inst1Due, -Math.floor(rng() * 10)), receiptNo: receiptNo(), mode: pick(rng, modes) });
+    invoices.push({ studentId: s.id, title: "Semester 5 tuition · Instalment 1", amount: 45000, dueDate: inst1Due, paidAt: addDays(inst1Due, -Math.floor(rngMarks() * 10)), receiptNo: receiptNo(), mode: pick(rngMarks, modes) });
     const examDue = addDays(today, 14);
-    const examPaid = rng() < 0.7;
-    invoices.push({ studentId: s.id, title: "Semester 5 exam fee", amount: 1500, dueDate: examDue, paidAt: examPaid ? addDays(today, -Math.floor(rng() * 12)) : null, receiptNo: examPaid ? receiptNo() : null, mode: examPaid ? pick(rng, modes) : null });
+    const examPaid = rngMarks() < 0.7;
+    invoices.push({ studentId: s.id, title: "Semester 5 exam fee", amount: 1500, dueDate: examDue, paidAt: examPaid ? addDays(today, -Math.floor(rngMarks() * 12)) : null, receiptNo: examPaid ? receiptNo() : null, mode: examPaid ? pick(rngMarks, modes) : null });
     const inst2Due = addDays(today, 33);
-    const inst2Paid = s.id !== "24SUUBECS0045" && rng() < 0.45;
-    invoices.push({ studentId: s.id, title: "Semester 5 tuition · Instalment 2", amount: 18500, dueDate: inst2Due, paidAt: inst2Paid ? addDays(today, -Math.floor(rng() * 15)) : null, receiptNo: inst2Paid ? receiptNo() : null, mode: inst2Paid ? pick(rng, modes) : null });
+    const inst2Paid = s.id !== "24SUUBECS0045" && rngMarks() < 0.45;
+    invoices.push({ studentId: s.id, title: "Semester 5 tuition · Instalment 2", amount: 18500, dueDate: inst2Due, paidAt: inst2Paid ? addDays(today, -Math.floor(rngMarks() * 15)) : null, receiptNo: inst2Paid ? receiptNo() : null, mode: inst2Paid ? pick(rngMarks, modes) : null });
   }
 
   const at = (daysAgo: number, hour: number) => new Date(addDays(today, -daysAgo).getTime() + (hour - 5.5) * 3600 * 1000);

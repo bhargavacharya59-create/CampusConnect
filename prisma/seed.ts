@@ -13,6 +13,8 @@ async function inChunks<T>(rows: T[], size: number, fn: (chunk: T[]) => Promise<
 
 async function wipe() {
   // Children first.
+  await prisma.aiSummary.deleteMany();
+  await prisma.aiUsage.deleteMany();
   await prisma.meetingRequest.deleteMany();
   await prisma.message.deleteMany();
   await prisma.notice.deleteMany();

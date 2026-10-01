@@ -80,6 +80,18 @@ export const PrintIcon = (p: P) => (
     <rect x="6" y="14" width="12" height="8" />
   </Svg>
 );
+export const SparkleIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+    <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+  </Svg>
+);
+export const SendIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M22 2 11 13" />
+    <path d="M22 2 15 22l-4-9-9-4z" />
+  </Svg>
+);
 export const UserIcon = (p: P) => (
   <Svg {...p}>
     <circle cx="12" cy="8" r="4" />

@@ -23,6 +23,28 @@ Department codes inside student IDs: `CS` = CSE, `DS` = Data Science, `AI` = AIM
   - Fees: dues, overdue items, paid receipts
   - Messages: chat with the proctor, meeting requests, college notices
   - Account: student and parent details, change password, sign out
+  - **Ask AI** (Gemini): parents ask questions in English, Kannada or Hindi and get answers built only from their own child's data
+  - **AI progress summary**: a short weekly note about the child on the home page, cached once per week
+
+## AI (Google Gemini)
+
+Each AI feature has its own key in `.env`:
+
+| Key | Feature | Status |
+|---|---|---|
+| `GEMINI_KEY_PARENT` | Parent AI assistant + weekly parent summary | built |
+| `GEMINI_KEY_ASSIGNMENT` | Checking student notes/assignments (teacher approves the AI's marks) | planned |
+| `GEMINI_KEY_TEACHER` | Teacher writing helper + proctor class summaries | planned |
+| `GEMINI_KEY_ALERTS` | At-risk student alerts | planned |
+| `GEMINI_API_KEY` | Optional fallback for any feature whose key is empty | |
+
+- Create each key in a **separate Google Cloud project**, because Gemini limits are per project.
+- Use a **billed (paid) project** before real student data goes in. On the free tier, Google may use requests to improve its products.
+- Every user has a daily AI limit per feature (`AI_LIMIT_*` in `.env`), so costs stay predictable.
+- The model is set by `GEMINI_MODEL`. If that model is ever retired, the code falls back to `gemini-flash-latest` automatically.
+- If no key is set, the AI parts of the site show "not switched on yet" and everything else keeps working.
+
+Code: `src/lib/ai/gemini.ts` (client), `src/lib/ai/limits.ts` (daily limits), `src/lib/ai/studentContext.ts` (the data the AI sees).
 
 ## Run it locally
 
@@ -96,10 +118,11 @@ src/
 
 ## Roadmap
 
-1. Parent website ✅
-2. Teacher: take attendance, proctor class, marks entry, red/light theme
-3. Student dashboard
-4. Director: department dashboard, approvals, low-attendance list
-5. Dean: college dashboard, publishing results, reports
-6. Admin panel + Excel import
-7. Mobile app
+1. Parent website ✅ (with AI assistant and weekly summary ✅)
+2. Teacher: take attendance, proctor class, marks entry, red/light theme (red at 3 or more pending tasks), AI writing helper
+3. Student assignment upload with AI checking (teacher approves the marks)
+4. Student dashboard
+5. Director: department dashboard, approvals, low-attendance list, at-risk alerts
+6. Dean: college dashboard, publishing results, reports
+7. Admin panel + Excel import
+8. Mobile app

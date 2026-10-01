@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ATTENDANCE_THRESHOLD } from "@/lib/constants";
-import { formatDay, formatDateTime } from "@/lib/dates";
+import { formatDay, formatDateTime, istToday, weekStart } from "@/lib/dates";
 import { pct, plural, rupees } from "@/lib/format";
 import { getAttendance, getFees, getNoticesFor, getPublishedMarks, getToday } from "@/lib/queries/student";
-import { AlertIcon, ChevronRightIcon } from "@/components/icons";
+import { isAiEnabled } from "@/lib/ai/gemini";
+import { AlertIcon, ChevronRightIcon, SparkleIcon } from "@/components/icons";
 import { getParentAndChild } from "./data";
+import { SummaryButton } from "./SummaryButton";
 import { Empty, PeriodPill, SectionTitle } from "./ui";
 
 export default async function ParentHome() {
@@ -26,6 +28,12 @@ export default async function ParentHome() {
   ]);
   const low = att.pct < ATTENDANCE_THRESHOLD;
   const proctor = child.class.proctor?.user;
+  const aiOn = isAiEnabled("PARENT");
+  const summary = aiOn
+    ? await prisma.aiSummary.findUnique({
+        where: { studentId_kind_periodStart: { studentId: child.id, kind: "PARENT_WEEKLY", periodStart: weekStart(istToday()) } },
+      })
+    : null;
 
   return (
     <>
@@ -65,6 +73,31 @@ export default async function ParentHome() {
           </div>
         </section>
       )}
+
+      {/* AI */}
+      <section className="card border-brand-100">
+        <div className="mb-2 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+            <SparkleIcon size={16} />
+          </div>
+          <h2 className="text-[15px] font-extrabold">AI progress summary</h2>
+        </div>
+        {!aiOn ? (
+          <p className="text-sm text-ink-muted">AI features will appear here once the college switches them on.</p>
+        ) : (
+          <>
+            {summary ? (
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{summary.text}</p>
+            ) : (
+              <SummaryButton />
+            )}
+            <Link href="/parent/assistant" className="btn mt-3 w-full">
+              Ask AI about {child.user.name.split(" ")[0]}
+            </Link>
+            <p className="mt-2 text-center text-[11px] text-ink-muted">AI can make mistakes. Check important details with the proctor.</p>
+          </>
+        )}
+      </section>
 
       {latestMsg && (
         <Link href="/parent/messages" className="card flex items-start gap-3 border-brand-100 bg-brand-50 hover:border-brand-600">

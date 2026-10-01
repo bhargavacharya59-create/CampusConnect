@@ -96,6 +96,7 @@ model Student {
   invoices   FeeInvoice[]
   meetings   MeetingRequest[]
   messages   Message[]
+  aiSummaries AiSummary[]
 
   @@index([classId])
 }
@@ -246,6 +247,34 @@ model Message {
 
   @@index([toId])
   @@index([fromId])
+}
+
+// ---------- AI ----------
+
+// Daily AI request counter per user and feature, used for limits.
+// feature: PARENT | ASSIGNMENT | TEACHER | ALERTS
+model AiUsage {
+  id      Int      @id @default(autoincrement())
+  userId  String
+  feature String
+  day     DateTime // IST calendar day
+  count   Int      @default(0)
+
+  @@unique([userId, feature, day])
+}
+
+// Cached AI-written text, e.g. the weekly progress note a parent sees.
+// kind: PARENT_WEEKLY
+model AiSummary {
+  id          Int      @id @default(autoincrement())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  kind        String
+  periodStart DateTime
+  text        String
+  createdAt   DateTime @default(now())
+
+  @@unique([studentId, kind, periodStart])
 }
 
 // status: PENDING | ACCEPTED | DECLINED
