@@ -1,0 +1,265 @@
+// CampusConnect database schema.
+//
+// Development uses SQLite so the project runs with zero setup.
+// For production, change provider to "postgresql" and set DATABASE_URL.
+// Fields that look like enums are plain strings (SQLite has no enums);
+// the allowed values are listed in src/lib/constants.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Every person who can log in. `id` IS the login ID
+// (e.g. DEAN-0001, DIR-0001, TCH-0001, 24SUUBECS0302, 24SUUBECS0302P).
+model User {
+  id                 String   @id
+  role               String // DEAN | DIRECTOR | TEACHER | STUDENT | PARENT
+  name               String
+  email              String?
+  phone              String?
+  passwordHash       String
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  directs     Department?     @relation("DeptDirector")
+  teacher     Teacher?        @relation("TeacherUser")
+  student     Student?        @relation("StudentUser")
+  child       Student?        @relation("ParentOf")
+  notices     Notice[]
+  sent        Message[]       @relation("MessageFrom")
+  received    Message[]       @relation("MessageTo")
+  meetingsAsk MeetingRequest[] @relation("MeetingParent")
+}
+
+model Department {
+  id         String  @id // CSE | DS | AIML
+  code       String  @unique // code used inside student IDs: CS | DS | AI
+  name       String
+  directorId String? @unique
+  director   User?   @relation("DeptDirector", fields: [directorId], references: [id])
+
+  classes  Class[]
+  subjects Subject[]
+  teachers Teacher[]
+  notices  Notice[]
+}
+
+model Teacher {
+  id           String     @id // same as User.id, e.g. TCH-0001
+  user         User       @relation("TeacherUser", fields: [id], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  designation  String     @default("Assistant Professor")
+
+  proctorOf   Class?               @relation("Proctor")
+  assignments TeachingAssignment[]
+  sessions    AttendanceSession[]
+  meetings    MeetingRequest[]
+}
+
+// A class/section of up to 60 students, e.g. CSE-A.
+model Class {
+  id           String     @id // e.g. CSE-A
+  name         String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  semester     Int
+  section      String
+  proctorId    String?    @unique
+  proctor      Teacher?   @relation("Proctor", fields: [proctorId], references: [id])
+
+  students    Student[]
+  assignments TeachingAssignment[]
+  slots       TimetableSlot[]
+}
+
+model Student {
+  id           String   @id // login ID, e.g. 24SUUBECS0302
+  user         User     @relation("StudentUser", fields: [id], references: [id], onDelete: Cascade)
+  classId      String
+  class        Class    @relation(fields: [classId], references: [id])
+  rollNo       Int
+  admissionYear Int
+  parentId     String   @unique // e.g. 24SUUBECS0302P
+  parent       User     @relation("ParentOf", fields: [parentId], references: [id])
+  guardianName String
+  dateOfBirth  DateTime?
+
+  attendance AttendanceRecord[]
+  marks      Mark[]
+  invoices   FeeInvoice[]
+  meetings   MeetingRequest[]
+  messages   Message[]
+
+  @@index([classId])
+}
+
+model Subject {
+  id           String     @id // e.g. CS501
+  name         String
+  shortName    String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  semester     Int
+  isLab        Boolean    @default(false)
+
+  assignments TeachingAssignment[]
+}
+
+// "Teacher X teaches subject Y to class Z".
+model TeachingAssignment {
+  id        Int     @id @default(autoincrement())
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id])
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  slots       TimetableSlot[]
+  sessions    AttendanceSession[]
+  assessments Assessment[]
+
+  @@unique([classId, subjectId])
+  @@index([teacherId])
+}
+
+model TimetableSlot {
+  id           Int                @id @default(autoincrement())
+  classId      String
+  class        Class              @relation(fields: [classId], references: [id])
+  day          Int // 1 = Monday ... 6 = Saturday
+  period       Int // 1..PERIODS_PER_DAY
+  assignmentId Int
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id])
+  room         String
+
+  @@unique([classId, day, period])
+}
+
+// One period of attendance taken by a teacher.
+model AttendanceSession {
+  id           Int                @id @default(autoincrement())
+  assignmentId Int
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id])
+  date         DateTime // midnight UTC of the IST calendar date
+  period       Int
+  takenById    String
+  takenBy      Teacher            @relation(fields: [takenById], references: [id])
+  takenAt      DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  records AttendanceRecord[]
+
+  @@unique([assignmentId, date, period])
+  @@index([date])
+}
+
+model AttendanceRecord {
+  id        Int               @id @default(autoincrement())
+  sessionId Int
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status    String // P | A
+
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+}
+
+// An exam/test for one subject in one class, e.g. IA-1.
+// status flow: DRAFT -> SUBMITTED (teacher) -> DIRECTOR_APPROVED -> PUBLISHED (dean)
+model Assessment {
+  id           Int                @id @default(autoincrement())
+  assignmentId Int
+  assignment   TeachingAssignment @relation(fields: [assignmentId], references: [id])
+  name         String
+  maxMarks     Int
+  heldOn       DateTime?
+  status       String             @default("DRAFT")
+  publishedAt  DateTime?
+
+  marks Mark[]
+
+  @@unique([assignmentId, name])
+}
+
+model Mark {
+  id           Int        @id @default(autoincrement())
+  assessmentId Int
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  score        Float?
+  absent       Boolean    @default(false)
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+}
+
+model FeeInvoice {
+  id        Int       @id @default(autoincrement())
+  studentId String
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title     String
+  amount    Int // rupees
+  dueDate   DateTime
+  paidAt    DateTime?
+  receiptNo String?   @unique
+  mode      String? // CASH | UPI | CARD | BANK
+
+  @@index([studentId])
+}
+
+// audience: ALL | PARENTS | STUDENTS | STAFF. departmentId null = whole college.
+model Notice {
+  id           String      @id @default(cuid())
+  title        String
+  body         String
+  audience     String      @default("ALL")
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  authorId     String
+  author       User        @relation(fields: [authorId], references: [id])
+  createdAt    DateTime    @default(now())
+
+  @@index([createdAt])
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  fromId    String
+  from      User      @relation("MessageFrom", fields: [fromId], references: [id])
+  toId      String
+  to        User      @relation("MessageTo", fields: [toId], references: [id])
+  studentId String? // the student the conversation is about
+  student   Student?  @relation(fields: [studentId], references: [id])
+  body      String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([toId])
+  @@index([fromId])
+}
+
+// status: PENDING | ACCEPTED | DECLINED
+model MeetingRequest {
+  id            String    @id @default(cuid())
+  parentId      String
+  parent        User      @relation("MeetingParent", fields: [parentId], references: [id])
+  teacherId     String
+  teacher       Teacher   @relation(fields: [teacherId], references: [id])
+  studentId     String
+  student       Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  preferredDate DateTime
+  reason        String
+  status        String    @default("PENDING")
+  reply         String?
+  createdAt     DateTime  @default(now())
+}
