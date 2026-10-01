@@ -282,3 +282,43 @@ export async function addFeeForClass(_prev: FormState, f: FormData): Promise<For
   revalidatePath("/admin/fees");
   return { ok: `Added "${title}" for ${students.length} students.` };
 }
+
+// ---------------- Timetable ----------------
+
+/** Replaces a class's weekly timetable. Fields: cell-<day>-<period> = assignmentId or "" (free). */
+export async function saveTimetable(_prev: FormState, f: FormData): Promise<FormState> {
+  await admin();
+  const classId = str(f, "classId");
+  const cls = await prisma.class.findUnique({ where: { id: classId }, include: { assignments: { include: { subject: true } }, slots: true } });
+  if (!cls) return { error: "Class not found." };
+  const own = new Map<number, (typeof cls.assignments)[number]>(cls.assignments.map((a) => [a.id, a]));
+  const roomOf = (isLab: boolean) => cls.slots.find((s) => (own.get(s.assignmentId)?.subject.isLab ?? false) === isLab)?.room ?? (isLab ? "Lab" : `Room ${cls.id}`);
+
+  const wanted: { day: number; period: number; assignmentId: number }[] = [];
+  for (const [k, v] of f.entries()) {
+    const m = /^cell-(\d)-(\d)$/.exec(k);
+    if (!m || !String(v)) continue;
+    const a = own.get(Number(v));
+    if (!a) return { error: "Choose subjects from this class only." };
+    wanted.push({ day: Number(m[1]), period: Number(m[2]), assignmentId: a.id });
+  }
+
+  // A teacher can't be in two classes at once.
+  for (const w of wanted) {
+    const teacherId = own.get(w.assignmentId)!.teacherId;
+    const clash = await prisma.timetableSlot.findFirst({
+      where: { day: w.day, period: w.period, classId: { not: classId }, assignment: { teacherId } },
+      include: { assignment: { include: { teacher: { include: { user: true } } } } },
+    });
+    if (clash) return { error: `Clash: ${clash.assignment.teacher.user.name} already teaches ${clash.classId} on day ${w.day}, period ${w.period}.` };
+  }
+
+  await prisma.$transaction([
+    prisma.timetableSlot.deleteMany({ where: { classId } }),
+    prisma.timetableSlot.createMany({
+      data: wanted.map((w) => ({ classId, day: w.day, period: w.period, assignmentId: w.assignmentId, room: roomOf(own.get(w.assignmentId)!.subject.isLab) })),
+    }),
+  ]);
+  revalidatePath("/admin/timetable");
+  return { ok: `Timetable for ${classId} saved (${wanted.length} periods a week).` };
+}

@@ -79,7 +79,7 @@ The dummy data is generated relative to the day you run `npm run setup`, so "tod
 
 **Dean:** college overview and department comparison, **publish results** (Teacher → Director → Dean → students and parents see them), **approvals** of Director requests, departments and Director assignment, student search, college notices and academic calendar, CSV reports.
 
-**College Office:** search any account and **reset passwords**, **add students** (parent login created automatically), **import students from Excel/CSV**, add staff (Teacher, Director, Dean, Office), set proctors and subject teachers (double-booking is refused), **record fee payments** (receipt numbers generated) and add fee items, CSV reports.
+**College Office:** search any account and **reset passwords**, **add students** (parent login created automatically), **import students from Excel/CSV**, add staff (Teacher, Director, Dean, Office), set proctors and subject teachers, **edit each class's weekly timetable** (double-booking is refused), **record fee payments** (receipt numbers generated) and add fee items, CSV reports.
 
 ---
 
@@ -94,7 +94,6 @@ The dummy data is generated relative to the day you run `npm run setup`, so "tod
 ## Known limits
 
 - Online fee payment (e.g. Razorpay) and SMS/WhatsApp alerts are not connected; payments are recorded by the office and alerts appear inside the portal.
-- The weekly timetable comes from the seed. The office can change who teaches each subject and the proctors, but editing period slots needs a database edit.
 - On Postgres, name search is case-sensitive (IDs are not).
 
 ## Project layout

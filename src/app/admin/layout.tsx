@@ -20,6 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/import", label: "Import from Excel" },
         { href: "/admin/staff", label: "Add staff" },
         { href: "/admin/classes", label: "Classes & teachers" },
+        { href: "/admin/timetable", label: "Timetable" },
         { href: "/admin/fees", label: "Fees" },
         { href: "/admin/reports", label: "Reports" },
       ]}
