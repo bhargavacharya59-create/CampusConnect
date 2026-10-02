@@ -1,14 +1,16 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
+import { useI18n } from "@/lib/i18n/context";
 import type { FormState } from "@/app/actions/auth";
 import { generateWeeklySummary } from "./ai-actions";
 
 function Submit() {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
   return (
     <button type="submit" className="btn-outline h-10 w-full" disabled={pending}>
-      {pending ? "Writing summary…" : "Get this week's AI summary"}
+      {pending ? t("writingSummary") : t("getWeeklySummary")}
     </button>
   );
 }

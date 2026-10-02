@@ -14,9 +14,9 @@ export const AI_KEY_ENV: Record<AiFeature, string> = {
   ALERTS: "GEMINI_KEY_ALERTS", // at-risk student alerts
 };
 
-const DEFAULT_MODEL = "gemini-3.8-flash";
+const DEFAULT_MODEL = "gemini-2.0-flash";
 // Used automatically if the configured model is not found (e.g. retired).
-const FALLBACK_MODEL = "gemini-flash-latest";
+const FALLBACK_MODEL = "gemini-1.5-flash";
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export function aiKey(feature: AiFeature): string | null {

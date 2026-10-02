@@ -3,14 +3,16 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
+import { useI18n } from "@/lib/i18n/context";
 import type { FormState } from "@/app/actions/auth";
 import { markMessagesRead, requestMeeting, sendMessageToProctor } from "../actions";
 
-function Submit({ idle, busy }: { idle: string; busy: string }) {
+function Submit({ idleKey, busyKey }: { idleKey: "send" | "sendRequest"; busyKey: "sending" }) {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
   return (
     <button type="submit" className="btn" disabled={pending}>
-      {pending ? busy : idle}
+      {pending ? t(busyKey) : t(idleKey)}
     </button>
   );
 }
@@ -32,6 +34,7 @@ function Feedback({ state }: { state: FormState }) {
 }
 
 export function MessageForm({ proctorName }: { proctorName: string }) {
+  const { t } = useI18n();
   const [state, action] = useFormState<FormState, FormData>(sendMessageToProctor, {});
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -41,18 +44,19 @@ export function MessageForm({ proctorName }: { proctorName: string }) {
   return (
     <form ref={ref} action={action} className="mt-3 flex flex-col gap-2">
       <label htmlFor="body" className="label">
-        Message {proctorName}
+        {t("messageProctor", { name: proctorName })}
       </label>
-      <textarea id="body" name="body" rows={3} maxLength={1000} required className="field h-auto py-2.5" placeholder="Write your message…" />
+      <textarea id="body" name="body" rows={3} maxLength={1000} required className="field h-auto py-2.5" placeholder={t("writeYourMessage")} />
       <Feedback state={state} />
       <div className="flex justify-end">
-        <Submit idle="Send" busy="Sending…" />
+        <Submit idleKey="send" busyKey="sending" />
       </div>
     </form>
   );
 }
 
 export function MeetingForm({ min, max }: { min: string; max: string }) {
+  const { t } = useI18n();
   const [state, action] = useFormState<FormState, FormData>(requestMeeting, {});
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -63,19 +67,19 @@ export function MeetingForm({ min, max }: { min: string; max: string }) {
     <form ref={ref} action={action} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="date" className="label">
-          Preferred date
+          {t("preferredDate")}
         </label>
         <input id="date" name="date" type="date" min={min} max={max} required className="field" />
-        <p className="text-xs text-ink-muted">Monday to Friday, within the next 30 days.</p>
+        <p className="text-xs text-ink-muted">{t("dateConstraint")}</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="reason" className="label">
-          What would you like to discuss?
+          {t("whatToDiscuss")}
         </label>
         <textarea id="reason" name="reason" rows={2} maxLength={500} required className="field h-auto py-2.5" />
       </div>
       <Feedback state={state} />
-      <Submit idle="Send request" busy="Sending…" />
+      <Submit idleKey="sendRequest" busyKey="sending" />
     </form>
   );
 }

@@ -3,21 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CardIcon, ChartIcon, ChatIcon, CheckSquareIcon, HomeIcon } from "@/components/icons";
+import { useI18n } from "@/lib/i18n/context";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-const TABS = [
-  { href: "/parent", label: "Home", Icon: HomeIcon },
-  { href: "/parent/attendance", label: "Attendance", Icon: CheckSquareIcon },
-  { href: "/parent/marks", label: "Marks", Icon: ChartIcon },
-  { href: "/parent/fees", label: "Fees", Icon: CardIcon },
-  { href: "/parent/messages", label: "Messages", Icon: ChatIcon },
+const TABS: { href: string; labelKey: TranslationKey; Icon: typeof HomeIcon }[] = [
+  { href: "/parent", labelKey: "home", Icon: HomeIcon },
+  { href: "/parent/attendance", labelKey: "attendance", Icon: CheckSquareIcon },
+  { href: "/parent/marks", labelKey: "marks", Icon: ChartIcon },
+  { href: "/parent/fees", labelKey: "fees", Icon: CardIcon },
+  { href: "/parent/messages", labelKey: "messages", Icon: ChatIcon },
 ];
 
 export function BottomNav({ unread }: { unread: number }) {
   const path = usePathname();
+  const { t } = useI18n();
   return (
     <nav aria-label="Main" className="no-print sticky bottom-0 z-10 flex h-[70px] justify-around border-t border-line bg-white px-1 pb-[env(safe-area-inset-bottom)]">
-      {TABS.map(({ href, label, Icon }) => {
+      {TABS.map(({ href, labelKey, Icon }) => {
         const active = href === "/parent" ? path === "/parent" : path.startsWith(href);
+        const label = t(labelKey);
         return (
           <Link
             key={href}
@@ -27,7 +31,7 @@ export function BottomNav({ unread }: { unread: number }) {
           >
             <Icon />
             {label}
-            {label === "Messages" && unread > 0 && (
+            {labelKey === "messages" && unread > 0 && (
               <span className="absolute right-2.5 top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-alert-600 px-1 text-[10px] font-extrabold text-white">
                 {unread}
               </span>

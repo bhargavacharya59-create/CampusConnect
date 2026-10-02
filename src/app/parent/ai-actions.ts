@@ -25,13 +25,23 @@ export interface ChatResult {
 const MAX_TURNS = 12;
 const MAX_CHARS = 1000;
 
-function systemPrompt(childName: string, proctor: string, data: string) {
+const LANG_NAMES: Record<string, string> = {
+  en: "English",
+  kn: "Kannada (ಕನ್ನಡ)",
+  hi: "Hindi (हिन्दी)",
+};
+
+function systemPrompt(childName: string, proctor: string, data: string, preferredLang?: string) {
+  const langInstruction = preferredLang && preferredLang !== "en"
+    ? `- The parent has selected ${LANG_NAMES[preferredLang] ?? preferredLang} as their preferred language. Reply primarily in ${LANG_NAMES[preferredLang] ?? preferredLang}. If the parent writes in a different language, reply in that language instead.`
+    : `- Reply in the same language the parent writes in (English, Kannada, Hindi, or a mix such as Kanglish/Hinglish).`;
+
   return `You are the CampusConnect assistant for parents at ${COLLEGE_NAME}, an engineering college in India.
 You are talking to the parent of ${childName}.
 
 Rules:
 - Answer ONLY from the DATA below. Never guess or invent numbers, dates or names. If something is not in the DATA, say you don't have that information and suggest asking the proctor, ${proctor}, through the Messages tab.
-- Reply in the same language the parent writes in (English, Kannada, Hindi, or a mix such as Kanglish/Hinglish).
+${langInstruction}
 - Be warm, short and practical: 2-6 sentences or a short list. No tables, no markdown headings.
 - When attendance in any subject is below the minimum, say so clearly and kindly, with the number of classes needed.
 - Only talk about this student and this college. Politely decline unrelated requests.
@@ -48,7 +58,7 @@ async function loadChild() {
   return { session, child };
 }
 
-export async function askAssistant(history: ChatTurn[]): Promise<ChatResult> {
+export async function askAssistant(history: ChatTurn[], preferredLang?: string): Promise<ChatResult> {
   const { session, child } = await loadChild();
   if (!child) return { error: "No student is linked to this account." };
   if (!isAiEnabled("PARENT")) return { error: "The AI assistant is not set up yet. Please ask the college office to add the Gemini key." };
@@ -71,7 +81,7 @@ export async function askAssistant(history: ChatTurn[]): Promise<ChatResult> {
     const data = await buildStudentContext(child);
     const reply = await generateText({
       feature: "PARENT",
-      system: systemPrompt(child.user.name, child.class.proctor?.user.name ?? "the proctor", data),
+      system: systemPrompt(child.user.name, child.class.proctor?.user.name ?? "the proctor", data, preferredLang),
       turns: turns.map((t) => ({ role: t.role, parts: [{ text: t.text }] })),
       temperature: 0.3,
       maxOutputTokens: 800,
