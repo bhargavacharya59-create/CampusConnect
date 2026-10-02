@@ -30,6 +30,7 @@ GEMINI_KEY_ALERTS="..."       # Gemini 4: at-risk student alerts for Directors
 ```
 
 3. Restart the site (`npm run dev`, or `npm run build && npm start` in production).
+4. Check the keys: run `npm run ai:check` in a terminal, or sign in as `ADMIN-0001` and open **AI status**. Each key shows Working, or the exact problem (invalid key, API not enabled, quota used up, no network) and how to fix it.
 
 That's all: no code changes needed. If a key is missing, only that AI feature shows "not switched on"; everything else keeps working. `GEMINI_API_KEY` is an optional fallback used by any feature whose own key is empty. Keys are never sent to the browser and `.env` is never uploaded to GitHub.
 

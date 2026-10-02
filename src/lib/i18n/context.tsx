@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { DEFAULT_LANG, TRANSLATIONS, type Lang, type TranslationKey } from "./translations";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { DEFAULT_LANG, LANGUAGES, TRANSLATIONS, type Lang, type TranslationKey } from "./translations";
+import { LANG_COOKIE } from "./lang";
 
 interface I18nContextValue {
   lang: Lang;
@@ -11,32 +13,36 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-const STORAGE_KEY = "cc-lang";
+/**
+ * The chosen language is kept in a cookie (not only localStorage) so the
+ * server renders pages, AI answers and AI summaries in the same language
+ * and there is no flash of English when a page loads.
+ */
+export function I18nProvider({ children, initialLang = DEFAULT_LANG }: { children: ReactNode; initialLang?: Lang }) {
+  const [lang, setLangState] = useState<Lang>(LANGUAGES.includes(initialLang) ? initialLang : DEFAULT_LANG);
+  const router = useRouter();
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(DEFAULT_LANG);
-
-  // Hydrate from localStorage on first render
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && (stored === "en" || stored === "kn" || stored === "hi")) {
-        setLangState(stored);
+  const setLang = useCallback(
+    (l: Lang) => {
+      if (!LANGUAGES.includes(l)) return;
+      setLangState(l);
+      try {
+        document.cookie = `${LANG_COOKIE}=${l}; path=/; max-age=31536000; samesite=lax`;
+      } catch {
+        /* cookies blocked: the choice still applies for this visit */
       }
-    } catch { /* SSR or localStorage unavailable */ }
-  }, []);
-
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    try { localStorage.setItem(STORAGE_KEY, l); } catch { /* noop */ }
-  }, []);
+      // Re-render server parts (e.g. the AI summary) in the new language.
+      router.refresh();
+    },
+    [router],
+  );
 
   const translate = useCallback(
     (key: TranslationKey, vars?: Record<string, string | number>): string => {
       let str = TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
       if (vars) {
         for (const [k, v] of Object.entries(vars)) {
-          str = str.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+          str = str.split(`{${k}}`).join(String(v));
         }
       }
       return str;
@@ -44,11 +50,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [lang],
   );
 
-  return (
-    <I18nContext.Provider value={{ lang, setLang, t: translate }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={{ lang, setLang, t: translate }}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {

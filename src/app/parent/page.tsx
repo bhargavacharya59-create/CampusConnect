@@ -4,6 +4,8 @@ import { formatDay, formatDateTime, istToday, weekStart } from "@/lib/dates";
 import { pct, plural, rupees } from "@/lib/format";
 import { getAttendance, getFees, getNoticesFor, getPublishedMarks, getToday } from "@/lib/queries/student";
 import { isAiEnabled } from "@/lib/ai/gemini";
+import { summaryKind } from "@/lib/i18n/lang";
+import { getServerLang } from "@/lib/i18n/server";
 import { getParentAndChild } from "./data";
 import { ParentDashboard } from "./ParentDashboard";
 
@@ -28,7 +30,7 @@ export default async function ParentHome() {
   const aiOn = isAiEnabled("PARENT");
   const summary = aiOn
     ? await prisma.aiSummary.findUnique({
-        where: { studentId_kind_periodStart: { studentId: child.id, kind: "PARENT_WEEKLY", periodStart: weekStart(istToday()) } },
+        where: { studentId_kind_periodStart: { studentId: child.id, kind: summaryKind(getServerLang()), periodStart: weekStart(istToday()) } },
       })
     : null;
 

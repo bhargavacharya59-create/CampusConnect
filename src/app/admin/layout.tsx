@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/timetable", label: "Timetable" },
         { href: "/admin/fees", label: "Fees" },
         { href: "/admin/reports", label: "Reports" },
+        { href: "/admin/ai", label: "AI status" },
       ]}
     >
       {children}

@@ -71,7 +71,7 @@ export async function draftParentMessage(_prev: AiFormState, f: FormData): Promi
     const text = await generateText({
       feature: "TEACHER",
       system: `You draft short, respectful messages from a teacher at ${COLLEGE_NAME} to a student's parent in India.
-Write in ${["English", "Kannada", "Hindi"].includes(language) ? language : "English"}. 60-120 words, warm and clear, no markdown.
+Write the whole message in ${language === "Kannada" ? "Kannada (ಕನ್ನಡ script)" : language === "Hindi" ? "Hindi (Devanagari script)" : "English"}; keep names and subject names as in the DATA, numbers as digits. 60-120 words, warm and clear, no markdown.
 Use facts ONLY from the DATA; never invent numbers. Sign off as "${teacher?.user.name ?? "Teacher"}".
 
 DATA

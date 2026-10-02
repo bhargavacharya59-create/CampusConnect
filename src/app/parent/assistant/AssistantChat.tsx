@@ -21,12 +21,12 @@ export function AssistantChat({ enabled, firstName, initialLeft }: { enabled: bo
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns, pending]);
 
+  // Suggestions in the chosen language; in English also show that Kannada and Hindi work.
   const suggestions = [
     t("howDoing", { name: firstName }),
     t("whichSubjectAttention"),
     t("whenNextFee"),
-    "ನನ್ನ ಮಗುವಿನ ಹಾಜರಾತಿ ಹೇಗಿದೆ?",
-    "मेरे बच्चे के अंक कैसे हैं?",
+    ...(lang === "en" ? ["ನನ್ನ ಮಗುವಿನ ಹಾಜರಾತಿ ಹೇಗಿದೆ?", "मेरे बच्चे के अंक कैसे हैं?"] : []),
   ];
 
   async function send(text: string) {

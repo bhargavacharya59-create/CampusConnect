@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
+import { getServerLang } from "@/lib/i18n/server";
 import { getParentAndChild } from "./data";
 import { BottomNav } from "./BottomNav";
 import { ParentI18nProvider } from "./ParentI18nProvider";
@@ -23,7 +24,7 @@ export default async function ParentLayout({ children }: { children: React.React
     : null;
 
   return (
-    <ParentI18nProvider>
+    <ParentI18nProvider initialLang={getServerLang()}>
       <div className="min-h-screen bg-[#DCE7E5] sm:py-6">
         <div className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col bg-ground sm:min-h-[calc(100vh-3rem)] sm:overflow-hidden sm:rounded-[28px] sm:shadow-[0_20px_60px_rgba(11,61,58,0.18)]">
           <ParentHeader unread={unread} child={childData} />

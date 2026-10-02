@@ -16,9 +16,11 @@ function Submit() {
 }
 
 export function SummaryButton() {
+  const { lang } = useI18n();
   const [state, action] = useFormState<FormState, FormData>(generateWeeklySummary, {});
   return (
     <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="lang" value={lang} />
       <Submit />
       {state.error && (
         <p role="alert" className="text-sm font-semibold text-alert-800">

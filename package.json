@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "check:data": "tsx prisma/data/check.ts",
+    "ai:check": "tsx scripts/ai-check.ts",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:reset": "prisma db push --force-reset && prisma db seed",
