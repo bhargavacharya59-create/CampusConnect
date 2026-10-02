@@ -115,28 +115,32 @@ const withDetail = (msg: string, detail: string) => (isDev ? `${msg} (${detail})
 // ---------------- model resolution ----------------
 
 let resolvedModel: string | null = null;
+/** Models that just answered "busy" (503/429) are tried last for a minute. */
+const busyUntil = new Map<string, number>();
 
 function candidates(): string[] {
   const list = [process.env.GEMINI_MODEL?.trim(), resolvedModel, ...PREFERRED_MODELS].filter(Boolean) as string[];
-  return [...new Set(list.map((m) => m.replace(/^models\//, "")))];
+  const unique = [...new Set(list.map((m) => m.replace(/^models\//, "")))];
+  const now = Date.now();
+  const isBusy = (m: string) => (busyUntil.get(m) ?? 0) > now;
+  return [...unique.filter((m) => !isBusy(m)), ...unique.filter(isBusy)];
 }
 
-/** Asks Google which models this key can call and picks the newest Flash model. */
-async function discoverModel(key: string): Promise<string | null> {
+/** Asks Google which models this key can call; newest Flash models first. */
+async function discoverModels(key: string): Promise<string[]> {
   try {
     const res = await fetch(`${ENDPOINT}/models?pageSize=200`, { headers: { "x-goog-api-key": key }, cache: "no-store", signal: AbortSignal.timeout(15_000) });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const data = (await res.json()) as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
     const names = (data.models ?? [])
       .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
       .map((m) => m.name.replace(/^models\//, ""))
       .filter((n) => /flash/.test(n) && !/(image|tts|audio|live|embedding|vision|exp|preview|thinking)/.test(n));
-    if (!names.length) return null;
     const version = (n: string) => Number((n.match(/gemini-(\d+(?:\.\d+)?)/) ?? [])[1] ?? 0);
     names.sort((a, b) => version(b) - version(a) || Number(/lite/.test(a)) - Number(/lite/.test(b)) || a.length - b.length);
-    return names[0];
+    return names.slice(0, 6);
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -205,9 +209,9 @@ export async function generateText(opts: GenerateOptions): Promise<string> {
         throw new AiError(`Gemini network error: ${String(e)}`, withDetail("Couldn't reach the AI service. Please try again later.", String((e as Error)?.cause ?? e)), "NETWORK");
       }
       data = (await res.json().catch(() => ({}))) as GeminiResponse;
-      // Overloaded / internal error: wait a moment and retry once.
-      if ((res.status === 500 || res.status === 503) && attempt === 0) {
-        await sleep(1500);
+      // Overloaded / internal error: wait a moment and retry once on the same model.
+      if (res.status >= 500 && attempt === 0) {
+        await sleep(1200);
         continue;
       }
       break;
@@ -216,15 +220,17 @@ export async function generateText(opts: GenerateOptions): Promise<string> {
       resolvedModel = model;
       break;
     }
-    // Model name retired or unknown for this key: try the next one; once all
-    // known names fail, ask Google for the list.
     const status = res?.status ?? 0;
+    // Model name retired or unknown for this key, or this model is busy /
+    // rate-limited right now: try the next model. Once all known names are
+    // used up, ask Google which other models this key can use.
     const modelMissing = status === 404 || (status === 400 && /model|not found|not supported/i.test(data.error?.message ?? ""));
-    if (!modelMissing) break;
+    const busy = status === 429 || status >= 500;
+    if (busy) busyUntil.set(model, Date.now() + 60_000);
+    if (!modelMissing && !busy) break; // key problem (invalid, no permission…): another model won't help
     if (i === list.length - 1 && !discovered) {
       discovered = true;
-      const found = await discoverModel(key);
-      if (found && !tried.includes(found)) list = [...list, found];
+      for (const found of await discoverModels(key)) if (!list.includes(found)) list = [...list, found];
     }
   }
 
